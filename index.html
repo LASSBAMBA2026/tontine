@@ -1,0 +1,1009 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0E5A47">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Tontine">
+<meta name="description" content="Gestion de tontine : membres, cotisations, tours de paiement, rapports.">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>Gestionnaire de tontine</title>
+<style>
+:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+body{margin:0;font:14px system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+img{max-width:100%}
+[hidden]{display:none!important}
+</style>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Hanken+Grotesk:wght@400;500;600;700&display=swap">
+<style>
+/* Concept : carnet de caisse de quartier, lecture rapide sur téléphone, montants en FCFA, bascule clair/sombre */
+:root{
+  --bg:#F3F5F2; --surface:#FFFFFF; --ink:#17231F; --ink2:#51605A; --line:#DCE2DE;
+  --accent:#0E5A47; --accent-ink:#FFFFFF; --accent-soft:#DDEEE7;
+  --gold:#8A5A0B; --gold-soft:#F6E9CF; --beige:#F7F2E8;
+  --bad:#B3261E; --bad-soft:#F8DEDB; --ok:#1E6B38; --ok-soft:#DCF0E1;
+  --font-d:'Bricolage Grotesque','Avenir Next','Segoe UI',system-ui,sans-serif;
+  --font-b:'Hanken Grotesk','Segoe UI',system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0F1714; --surface:#17221E; --ink:#E8EFEB; --ink2:#A3B4AC; --line:#2B3A34;
+    --accent:#4FC19B; --accent-ink:#072019; --accent-soft:#1C3A30;
+    --gold:#E3B35A; --gold-soft:#3A2E15; --beige:#2B2720;
+    --bad:#F28B82; --bad-soft:#3D1F1C; --ok:#6FCF8D; --ok-soft:#1B3524; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0F1714; --surface:#17221E; --ink:#E8EFEB; --ink2:#A3B4AC; --line:#2B3A34;
+  --accent:#4FC19B; --accent-ink:#072019; --accent-soft:#1C3A30;
+  --gold:#E3B35A; --gold-soft:#3A2E15; --beige:#2B2720;
+  --bad:#F28B82; --bad-soft:#3D1F1C; --ok:#6FCF8D; --ok-soft:#1B3524; color-scheme:dark;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{background:var(--bg);color:var(--ink);font:15px/1.45 var(--font-b);
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  padding-block:0 96px;min-height:100vh}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);background:var(--bg);z-index:30}
+#app{max-width:720px;margin:0 auto}
+h1,h2,h3{font-family:var(--font-d);margin:0;text-wrap:balance;letter-spacing:-.01em}
+h1{font-size:26px;font-weight:700;line-height:1.1}
+h2{font-size:19px;font-weight:650}
+h3{font-size:16px;font-weight:650}
+p{margin:0}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.hdr{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--bg);display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 0 10px}
+.brand{display:flex;align-items:center;gap:10px;min-width:0}
+.logo{width:34px;height:34px;border-radius:50%;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;font:700 15px var(--font-d);flex:none}
+.brand span.logo{display:grid;color:var(--accent-ink);font:700 15px var(--font-d);max-width:none;overflow:visible}
+.brand b{font:700 17px var(--font-d);display:block;line-height:1.1}
+.brand span{font-size:12px;color:var(--ink2);display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:46vw}
+.chip{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 12px;font-size:13px;display:flex;gap:6px;align-items:center}
+.ctx{display:flex;gap:10px;align-items:center;margin:2px 0 14px}
+.ctx select{flex:1;min-width:0}
+.ptitle{display:flex;align-items:center;gap:10px;margin:6px 0 14px;flex-wrap:wrap}
+.ptitle h1{flex:1;min-width:0}
+.back{border:0;background:none;color:var(--accent);font-weight:600;padding:4px 0}
+.stack{display:flex;flex-direction:column;gap:14px}
+.row{display:flex;gap:10px;align-items:center}
+.row.sb{justify-content:space-between}
+.grow{flex:1;min-width:0}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px 16px}
+.hero{background:var(--accent);color:var(--accent-ink);border-radius:16px;padding:18px 18px 16px}
+.hero small{opacity:.85;font-size:13px}
+.hero .big{font:700 34px/1.1 var(--font-d);margin:4px 0 12px;font-variant-numeric:tabular-nums}
+.bar{height:8px;border-radius:99px;background:rgba(255,255,255,.28);overflow:hidden}
+.bar i{display:block;height:100%;background:var(--accent-ink);border-radius:99px}
+.hero .meta{display:flex;justify-content:space-between;gap:8px;font-size:13px;margin-top:8px;opacity:.92;flex-wrap:wrap}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(138px,1fr));gap:10px}
+.tile{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.tile small{color:var(--ink2);font-size:12.5px;display:block}
+.tile b{font:700 20px var(--font-d);font-variant-numeric:tabular-nums;display:block;margin-top:2px}
+.tile.warn b{color:var(--bad)}
+.sec{display:flex;justify-content:space-between;align-items:baseline;margin:8px 0 -4px}
+.sec h2{font-size:17px}
+.list{display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.item{display:flex;gap:12px;align-items:center;padding:12px 14px;border-bottom:1px solid var(--line);background:none;border-left:0;border-right:0;border-top:0;text-align:left;width:100%}
+.item:last-child{border-bottom:0}
+button.item:hover{background:var(--accent-soft)}
+.item .t{font-weight:600;overflow-wrap:anywhere}
+.item .s{font-size:13px;color:var(--ink2);overflow-wrap:anywhere}
+.amt{font:650 15px var(--font-d);font-variant-numeric:tabular-nums;white-space:nowrap;text-align:right}
+.av{width:40px;height:40px;border-radius:50%;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;font:700 14px var(--font-d);flex:none;overflow:hidden}
+.av img{width:100%;height:100%;object-fit:cover}
+.av.lg{width:64px;height:64px;font-size:20px}
+.pill{display:inline-block;border-radius:99px;padding:2px 9px;font-size:12px;font-weight:600;white-space:nowrap}
+.pill.ok{background:var(--ok-soft);color:var(--ok)}
+.pill.bad{background:var(--bad-soft);color:var(--bad)}
+.pill.gold{background:var(--gold-soft);color:var(--gold)}
+.pill.mute{background:var(--line);color:var(--ink2)}
+.btn{border:1px solid var(--accent);background:var(--accent);color:var(--accent-ink);border-radius:10px;padding:10px 16px;font-weight:600;display:inline-flex;gap:6px;align-items:center;justify-content:center;min-height:42px}
+.btn.alt{background:var(--surface);color:var(--accent)}
+.btn.bad{background:var(--bad);border-color:var(--bad);color:var(--surface)}
+.btn.sm{padding:6px 11px;min-height:34px;font-size:13.5px;border-radius:9px}
+.btn:disabled{opacity:.5;cursor:default}
+.btns{display:flex;gap:8px;flex-wrap:wrap}
+label{display:block;font-size:13px;font-weight:600;color:var(--ink2);margin-bottom:4px}
+input,select{width:100%;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 12px;min-height:44px}
+input[type=file]{padding:8px}
+.fld{margin-bottom:12px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media (max-width:420px){.two{grid-template-columns:1fr}}
+.seg{display:flex;background:var(--line);border-radius:11px;padding:3px;gap:3px}
+.seg button{flex:1;border:0;background:none;border-radius:8px;padding:8px;font-weight:600;color:var(--ink2)}
+.seg button[aria-pressed=true]{background:var(--surface);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.12)}
+.nav{position:fixed;left:0;right:0;bottom:0;z-index:25;background:var(--surface);border-top:1px solid var(--line);
+  padding:6px max(8px,env(safe-area-inset-right,0px)) calc(6px + env(safe-area-inset-bottom,0px)) max(8px,env(safe-area-inset-left,0px))}
+.nav div{max-width:720px;margin:0 auto;display:grid;grid-template-columns:repeat(5,1fr);gap:2px}
+.nav button{border:0;background:none;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 2px;font-size:11.5px;font-weight:600;color:var(--ink2);border-radius:10px}
+.nav button[aria-current=page]{color:var(--accent);background:var(--accent-soft)}
+.ic{width:22px;height:22px}
+.empty{text-align:center;padding:36px 12px;color:var(--ink2);display:flex;flex-direction:column;gap:12px;align-items:center}
+.empty h2{color:var(--ink)}
+.note{font-size:13px;color:var(--ink2)}
+.sheetwrap[hidden]{display:none}
+.scrim{position:fixed;inset:0;background:rgba(10,20,16,.5);z-index:40}
+.sheet{position:fixed;left:0;right:0;bottom:0;z-index:41;background:var(--bg);border-radius:18px 18px 0 0;max-height:92vh;display:flex;flex-direction:column;max-width:720px;margin:0 auto;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.sheet header{display:flex;justify-content:space-between;align-items:center;padding:14px 0 8px}
+.sheet .x{border:0;background:var(--line);width:34px;height:34px;border-radius:50%;font-size:20px;line-height:1;color:var(--ink2)}
+.sbody{overflow:auto;padding:4px 0 calc(24px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:14px}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(84px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;z-index:60;max-width:90vw;font-size:14px}
+.toast[hidden]{display:none}
+.auth .card{background:var(--beige)}
+.auth{max-width:420px;margin:0 auto;padding:40px 0;display:flex;flex-direction:column;gap:18px}
+.err{color:var(--bad);font-size:13.5px;min-height:18px}
+.tablewrap{overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:14px}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{padding:9px 12px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap}
+td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
+tr:last-child td{border-bottom:0}
+th{font-size:12px;color:var(--ink2);text-transform:uppercase;letter-spacing:.04em}
+.receipt{background:var(--surface);border:1px dashed var(--ink2);border-radius:10px;padding:14px 16px;font:14px/1.7 ui-monospace,Menlo,Consolas,monospace;white-space:pre-wrap;overflow-wrap:anywhere}
+.step{display:grid;place-items:center;width:28px;height:28px;border-radius:50%;border:1.5px solid var(--line);font:700 13px var(--font-d);flex:none}
+.step.done{background:var(--ok-soft);border-color:var(--ok);color:var(--ok)}
+.step.next{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.nextcard{border:2px solid var(--accent);background:var(--surface)}
+.nextcard .nm{font:700 24px/1.15 var(--font-d)}
+@media (prefers-reduced-motion:no-preference){.sheet{animation:up .18s ease-out}@keyframes up{from{transform:translateY(30px);opacity:.4}to{transform:none;opacity:1}}}
+</style>
+
+
+</head>
+<body>
+<div id="app"></div>
+<div id="sheet" class="sheetwrap" hidden></div>
+<div id="toast" class="toast" role="status" hidden></div>
+
+<script crossorigin="anonymous" src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script crossorigin="anonymous" src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+<script>
+(function(){
+'use strict';
+
+/* ---------- Données : une collection par table du MLD ---------- */
+var COLL=['membres','tontines','types','adhesions','cotisations','tours','notifications','utilisateurs','journal'];
+var S={data:{},db:null,dl:null,mode:'loading',user:null,view:'accueil',tid:null,q:'',cseg:'hist',sheet:null,
+  rep:{mode:'jour',date:'',month:''},fail:0,lock:0,confirmClear:false,authErr:'',authTel:''};
+COLL.forEach(function(c){S.data[c]={};});
+var LKEY='tontine-local-v1';
+
+/* ---------- Utilitaires ---------- */
+function $(s){return document.querySelector(s);}
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
+function vals(c){return Object.keys(S.data[c]).map(function(k){return S.data[c][k];});}
+function sum(a,f){return a.reduce(function(s,x){return s+(f?f(x):x);},0);}
+function pad(n){return String(n).padStart(2,'0');}
+function iso(d){return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());}
+function today(){return iso(new Date());}
+function parse(s){var p=s.split('-').map(Number);return new Date(p[0],p[1]-1,p[2]);}
+function addDays(s,n){var d=parse(s);d.setDate(d.getDate()+n);return iso(d);}
+function addMonths(s,n){var d=parse(s);d.setMonth(d.getMonth()+n);return iso(d);}
+function diffDays(a,b){return Math.round((parse(b)-parse(a))/864e5);}
+function fdate(s){if(!s)return '—';return parse(s).toLocaleDateString('fr-FR',{day:'numeric',month:'short',year:'numeric'});}
+function fmonth(m){var p=m.split('-').map(Number);return new Date(p[0],p[1]-1,1).toLocaleDateString('fr-FR',{month:'long',year:'numeric'});}
+function ftime(ts){return new Date(ts).toLocaleString('fr-FR',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});}
+function F(n){return new Intl.NumberFormat('fr-FR').format(Math.round(n)).replace(/[  ]/g,' ')+' F';}
+function Fp(n){return new Intl.NumberFormat('fr-FR').format(Math.round(n)).replace(/[  ]/g,' ')+' F';}
+function normPhone(s){return String(s||'').replace(/[^\d+]/g,'');}
+function initials(m){return ((m.prenom||'?')[0]+(m.nom||'')[0]).toUpperCase();}
+
+/* ---------- Règles métier ---------- */
+function periods(t,start,end){
+  end=end||today(); if(t.date_fin&&end>t.date_fin)end=t.date_fin; if(end<start)return 0;
+  if(t.frequence==='quotidienne')return diffDays(start,end)+1;
+  if(t.frequence==='cinq_jours')return Math.floor(diffDays(start,end)/5)+1;
+  if(t.frequence==='hebdomadaire')return Math.floor(diffDays(start,end)/7)+1;
+  var a=parse(start),b=parse(end),m=(b.getFullYear()-a.getFullYear())*12+b.getMonth()-a.getMonth();
+  if(b.getDate()<a.getDate())m--; return m+1;
+}
+function T(){return vals('tontines').sort(function(a,b){return b.date_debut.localeCompare(a.date_debut);});}
+function curT(){var l=T();return l.find(function(t){return t.id===S.tid;})||l[0]||null;}
+function adhesionsOf(tid){return vals('adhesions').filter(function(a){return a.id_tontine===tid;}).sort(function(a,b){return a.ordre_passage-b.ordre_passage;});}
+function mem(id){return S.data.membres[id];}
+function mname(m){return m?m.prenom+' '+m.nom:'Membre supprimé';}
+function isActive(a){var m=mem(a.id_membre);return !!m&&m.statut==='actif';}
+function typeAmt(a){var ty=S.data.types[a.id_type];return ty?ty.montant:0;}
+function perAmt(a){return typeAmt(a)*nbT(a);}
+function paidBy(aid){return sum(vals('cotisations').filter(function(c){return c.id_adhesion===aid;}),function(c){return c.montant;});}
+function startOf(a,t){var m=mem(a.id_membre);return m&&m.date_adhesion>t.date_debut?m.date_adhesion:t.date_debut;}
+function due(a,t){return periods(t,startOf(a,t))*perAmt(a);}
+function solde(a,t){return due(a,t)-paidBy(a.id);}
+function cotisOf(t){var ids={};adhesionsOf(t.id).forEach(function(a){ids[a.id]=1;});return vals('cotisations').filter(function(c){return ids[c.id_adhesion];});}
+function potOf(t){return sum(adhesionsOf(t.id).filter(isActive),perAmt);}
+function toursOf(tid){return vals('tours').filter(function(x){return x.id_tontine===tid;}).sort(function(a,b){return b.date_tour.localeCompare(a.date_tour);});}
+function nbT(a){return a.nb_tours>0?a.nb_tours:1;}
+function gotT(a){return toursOf(a.id_tontine).filter(function(x){return x.id_membre===a.id_membre;}).length;}
+function toursOptions(sel){var o='';for(var i=1;i<=6;i++)o+='<option value="'+i+'"'+(i===sel?' selected':'')+'>'+i+' tour'+(i>1?'s':'')+'</option>';return o;}
+function nextBenef(t){
+  return adhesionsOf(t.id).find(function(a){return isActive(a)&&gotT(a)<nbT(a);})||null;
+}
+function stepOf(t){return t.frequence==='quotidienne'?function(d,k){return addDays(d,k);}:t.frequence==='cinq_jours'?function(d,k){return addDays(d,5*k);}:t.frequence==='hebdomadaire'?function(d,k){return addDays(d,7*k);}:function(d,k){return addMonths(d,k);};}
+function nextNumero(){return Math.max.apply(null,[0].concat(vals('membres').map(function(m){return m.numero||0;})))+1;}
+function isAdmin(){return !!S.user&&S.user.role==='admin';}
+var FREQ={cinq_jours:'Tous les 5 jours',quotidienne:'Quotidienne',hebdomadaire:'Hebdomadaire',mensuelle:'Mensuelle'};
+var PER={cinq_jours:'5 jours',quotidienne:'jour',hebdomadaire:'semaine',mensuelle:'mois'};
+var MODE={especes:'Espèces',mobile_money:'Mobile money'};
+
+/* ---------- Persistance (db partagée, sinon stockage local) ---------- */
+var queues={},rafId=0;
+function onDbErr(e){
+  var code=e&&e.code||'';
+  toast(code==='quota_exceeded'?'Espace de stockage plein.':code==='invalid_argument'?'Enregistrement refusé : droits insuffisants.':'Enregistrement impossible pour le moment.');
+}
+function chain(key,fn){var p=(queues[key]||Promise.resolve()).then(fn).catch(onDbErr);queues[key]=p;return p;}
+function saveLocal(){try{localStorage.setItem(LKEY,JSON.stringify(S.data));}catch(e){}}
+function persist(c,obj){
+  S.data[c][obj.id]=obj;
+  if(S.db){var copy=JSON.parse(JSON.stringify(obj));chain(c+'/'+obj.id,function(){return S.db.collection(c).doc(obj.id).set(copy);});}
+  else saveLocal();
+  schedule();
+}
+function drop(c,id){
+  delete S.data[c][id];
+  if(S.db){chain(c+'/'+id,function(){return S.db.collection(c).doc(id).delete();});}
+  else saveLocal();
+  schedule();
+}
+function logA(action,detail){
+  persist('journal',{id:uid(),ts:Date.now(),user:S.user?S.user.telephone:'',action:action,detail:detail||''});
+}
+function schedule(){
+  if(rafId)return;
+  rafId=requestAnimationFrame(function(){
+    rafId=0;
+    var ae=document.activeElement;
+    if(!S.user&&ae&&ae.closest&&ae.closest('#app form'))return;
+    render(); if(S.sheet&&S.sheet.live)paintSheet();
+  });
+}
+function subscribeAll(db){
+  var pending=COLL.length;
+  function done(){pending--;if(pending===0)ready();}
+  COLL.forEach(function(c){
+    var first=true;
+    var ref=c==='journal'?db.collection(c).orderBy('ts','desc').limit(200):db.collection(c);
+    ref.onSnapshot(function(snap){
+      var o={};snap.docs.forEach(function(d){var v=d.data();if(v)o[d.id]=Object.assign({},v,{id:d.id});});
+      S.data[c]=o;
+      if(first){first=false;done();}else schedule();
+    },function(e){onDbErr(e);if(first){first=false;done();}});
+  });
+}
+function ready(){if(S.mode==='ready')return;S.mode='ready';render();}
+async function init(){
+  S.rep.date=today();S.rep.month=today().slice(0,7);
+  render();
+  var db=null;
+  try{
+    db=await Promise.race([window.claude&&window.claude.use?window.claude.use('db'):Promise.resolve(null),new Promise(function(r){setTimeout(function(){r(null);},9000);})]);
+  }catch(e){db=null;}
+  try{S.dl=window.claude&&window.claude.use?await window.claude.use('downloads'):null;}catch(e){S.dl=null;}
+  if(db){S.db=db;subscribeAll(db);setTimeout(ready,8000);}
+  else{
+    try{var raw=localStorage.getItem(LKEY);if(raw){var d=JSON.parse(raw);COLL.forEach(function(c){S.data[c]=d[c]||{};});}}catch(e){}
+    S.mode='local';render();
+  }
+}
+
+/* ---------- Sécurité : compte, PIN, session ---------- */
+async function hashPin(tel,pin){
+  var s='tontine|'+tel+'|'+pin;
+  try{
+    if(window.crypto&&crypto.subtle){
+      var b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s));
+      return Array.from(new Uint8Array(b)).map(function(x){return x.toString(16).padStart(2,'0');}).join('');
+    }
+  }catch(e){}
+  return 'b64:'+btoa(unescape(encodeURIComponent(s)));
+}
+var idleTimer=0;
+function bump(){
+  clearTimeout(idleTimer);
+  if(S.user)idleTimer=setTimeout(function(){doLogout('Session fermée après 10 minutes d’inactivité.');},600000);
+}
+function doLogout(msg){S.user=null;S.view='accueil';S.sheet=null;S.authErr=msg||'';paintSheet();render();}
+function userOf(tel){return vals('utilisateurs').find(function(u){return u.telephone===tel;});}
+function sessionFor(u){return {id:u.id,role:u.role,id_membre:u.id_membre||null,telephone:u.telephone};}
+function seedTypes(){
+  [5000,10000,100000,250000].forEach(function(m){if(!S.data.types['t'+m])persist('types',{id:'t'+m,montant:m});});
+}
+
+/* ---------- Icônes ---------- */
+var IC={
+  home:'<path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/>',
+  users:'<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6"/><path d="M16 4.7a3.5 3.5 0 010 6.6M18.5 14.4c2 .7 3.5 2.6 3.5 5.6"/>',
+  coins:'<circle cx="12" cy="12" r="9"/><path d="M14.8 9c-.5-.9-1.5-1.4-2.8-1.4-1.7 0-2.8.8-2.8 2 0 3 5.8 1.2 5.8 4.2 0 1.2-1.1 2.1-3 2.1-1.4 0-2.5-.5-3-1.5M12 6v1.6M12 16.7V18"/>',
+  tour:'<path d="M20 11a8 8 0 10-2.3 5.7"/><path d="M20 4v7h-7"/>',
+  grid:'<rect x="4" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.5"/>',
+  bell:'<path d="M6 17v-6a6 6 0 0112 0v6l1.5 2h-15z"/><path d="M10 21h4"/>',
+  shield:'<path d="M12 3l8 3v6c0 4.5-3.3 8-8 9-4.7-1-8-4.5-8-9V6z"/>'
+};
+function ic(n){return '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+IC[n]+'</svg>';}
+function pill(t,k){return '<span class="pill '+k+'">'+esc(t)+'</span>';}
+function av(m,big){
+  if(!m)return '<span class="av'+(big?' lg':'')+'">?</span>';
+  return '<span class="av'+(big?' lg':'')+'">'+(m.photo?'<img alt="" src="'+esc(m.photo)+'">':esc(initials(m)))+'</span>';
+}
+
+/* ---------- Rendu principal ---------- */
+function render(){
+  var root=$('#app'),ae=document.activeElement,fid=ae&&ae.id,pos=ae&&ae.selectionStart;
+  if(S.mode==='loading')root.innerHTML='<div class="empty"><h2>Chargement…</h2><p>Ouverture de vos données.</p></div>';
+  else if(!S.user)root.innerHTML=authView();
+  else root.innerHTML=shell();
+  if(fid){var el=document.getElementById(fid);if(el){el.focus();try{if(pos!=null)el.setSelectionRange(pos,pos);}catch(e){}}}
+}
+function authView(){
+  var first=vals('utilisateurs').length===0;
+  var h='<div class="auth"><div class="brand"><span class="logo">T</span><div><b>Gestionnaire de tontine</b><span>'+(first?'Première utilisation':'Connexion')+'</span></div></div>';
+  if(first){
+    h+='<div class="card"><h2>Créer le compte administrateur</h2><p class="note" style="margin:6px 0 14px">Ce compte gère les membres, les cotisations et les tours. Choisissez un code PIN de 4 à 6 chiffres.</p>'+
+    '<form data-form="setup" autocomplete="off"><div class="fld"><label for="su-tel">Téléphone</label><input id="su-tel" name="tel" type="tel" inputmode="tel" required value="'+esc(S.authTel)+'"></div>'+
+    '<div class="two"><div class="fld"><label for="su-pin">Code PIN</label><input id="su-pin" name="pin" type="password" inputmode="numeric" pattern="\\d{4,6}" maxlength="6" required></div>'+
+    '<div class="fld"><label for="su-pin2">Confirmer le PIN</label><input id="su-pin2" name="pin2" type="password" inputmode="numeric" pattern="\\d{4,6}" maxlength="6" required></div></div>'+
+    '<div class="err" role="alert">'+esc(S.authErr)+'</div><button class="btn" style="width:100%">Créer le compte</button></form></div>';
+  }else{
+    h+='<div class="card"><h2>Connexion</h2><form data-form="login" autocomplete="off" style="margin-top:12px"><div class="fld"><label for="li-tel">Téléphone</label><input id="li-tel" name="tel" type="tel" inputmode="tel" required value="'+esc(S.authTel)+'"></div>'+
+    '<div class="fld"><label for="li-pin">Code PIN</label><input id="li-pin" name="pin" type="password" inputmode="numeric" maxlength="6" required></div>'+
+    '<div class="err" role="alert">'+esc(S.authErr)+'</div><button class="btn" style="width:100%">Se connecter</button></form></div>';
+  }
+  if(S.mode==='local')h+='<p class="note">Mode local : les données restent sur cet appareil uniquement.</p>';
+  return h+'</div>';
+}
+var ADMIN_VIEWS=['accueil','membres','tontines','cotisations','tours','notifications','rapports','securite','plus'];
+var MEMBER_VIEWS=['accueil','cotisations','tours','notifications','securite'];
+var PLUS_VIEWS=['tontines','notifications','rapports','securite','plus'];
+function shell(){
+  var adm=isAdmin(),allowed=adm?ADMIN_VIEWS:MEMBER_VIEWS;
+  if(allowed.indexOf(S.view)<0)S.view='accueil';
+  var fn={accueil:adm?vAccueil:vAccueilMembre,membres:vMembres,tontines:vTontines,cotisations:vCotis,tours:vTours,notifications:vNotifs,rapports:vRapports,securite:vSecurite,plus:vPlus}[S.view];
+  var t=curT();
+  var h='<header class="hdr"><div class="brand"><span class="logo">T</span><div><b>Tontine</b><span>'+(t?esc(t.nom):'Aucune tontine')+'</span></div></div>'+
+    '<button class="chip" data-act="logout" aria-label="Se déconnecter">'+esc(adm?'Admin':'Membre')+' · Quitter</button></header>';
+  if(['accueil','cotisations','tours','rapports','notifications'].indexOf(S.view)>=0&&T().length>1){
+    h+='<div class="ctx"><label for="tsel" style="margin:0">Tontine</label><select id="tsel" data-change="tid">'+T().map(function(x){return '<option value="'+x.id+'"'+(t&&t.id===x.id?' selected':'')+'>'+esc(x.nom)+'</option>';}).join('')+'</select></div>';
+  }
+  h+='<main>'+fn()+'</main>';
+  var items=adm?[['accueil','Accueil','home'],['membres','Membres','users'],['cotisations','Cotisations','coins'],['tours','Tours','tour'],['plus','Plus','grid']]:
+    [['accueil','Accueil','home'],['cotisations','Cotisations','coins'],['tours','Tours','tour'],['notifications','Alertes','bell'],['securite','Compte','shield']];
+  h+='<nav class="nav" aria-label="Navigation"><div>'+items.map(function(i){
+    var cur=i[0]===S.view||(i[0]==='plus'&&PLUS_VIEWS.indexOf(S.view)>=0);
+    return '<button data-act="nav" data-v="'+i[0]+'"'+(cur?' aria-current="page"':'')+'>'+ic(i[2])+i[1]+'</button>';
+  }).join('')+'</div></nav>';
+  return h;
+}
+function title(txt,back,extra){
+  return '<div class="ptitle">'+(back?'<button class="back" data-act="nav" data-v="plus">← Plus</button>':'')+'<h1>'+esc(txt)+'</h1>'+(extra||'')+'</div>';
+}
+
+/* ---------- Accueil ---------- */
+function emptyHome(){
+  return '<div class="empty"><h2>Bienvenue</h2><p>Commencez par créer votre première tontine, puis ajoutez vos membres.</p>'+
+    '<div class="btns" style="justify-content:center"><button class="btn" data-act="t-new">Créer une tontine</button><button class="btn alt" data-act="demo">Charger des données de démonstration</button></div></div>';
+}
+function vAccueil(){
+  var t=curT(); if(!t)return title('Tableau de bord')+emptyHome();
+  var ads=adhesionsOf(t.id),act=ads.filter(isActive),cot=cotisOf(t);
+  var total=sum(cot,function(c){return c.montant;});
+  var mois=sum(cot.filter(function(c){return c.date_paiement.slice(0,7)===today().slice(0,7);}),function(c){return c.montant;});
+  var retards=act.filter(function(a){return solde(a,t)>0;}).sort(function(a,b){return solde(b,t)-solde(a,t);});
+  var aPayer=sum(retards,function(a){return solde(a,t);});
+  var gain=sum(cot,function(c){return c.frais_beneficiaire||0;});
+  var gainTotal=sum(vals('cotisations'),function(c){return c.frais_beneficiaire||0;});
+  var dueAll=sum(act,function(a){return due(a,t);}),paidAct=sum(act,function(a){return paidBy(a.id);});
+  var pct=dueAll?Math.max(0,Math.min(100,paidAct/dueAll*100)):0;
+  var nb=nextBenef(t);
+  var h=title('Tableau de bord');
+  h+='<div class="stack"><div class="hero"><small>Total cotisé · '+esc(t.nom)+'</small><div class="big">'+F(total)+'</div><div class="bar" role="img" aria-label="'+Math.round(pct)+' % des cotisations dues sont payées"><i style="width:'+pct+'%"></i></div>'+
+    '<div class="meta"><span>'+Math.round(pct)+' % des cotisations dues</span><span>'+FREQ[t.frequence]+' · '+F(t.montant)+'</span></div></div>';
+  h+='<div class="tiles"><div class="tile"><small>Membres actifs</small><b>'+act.length+' / '+ads.length+'</b></div>'+
+     '<div class="tile"><small>Cotisé ce mois</small><b>'+F(mois)+'</b></div>'+
+     '<div class="tile'+(aPayer?' warn':'')+'"><small>Montant à payer</small><b>'+F(aPayer)+'</b></div>'+
+     '<div class="tile"><small>Gain tontinier choisi</small><b>'+F(gain)+'</b></div>'+
+     '<div class="tile"><small>Gain tontinier total</small><b>'+F(gainTotal)+'</b></div>'+
+     '<div class="tile'+(retards.length?' warn':'')+'"><small>Retards</small><b>'+retards.length+'</b></div></div>';
+  if(!ads.length)h+='<div class="card"><h3>Aucun participant</h3><p class="note" style="margin:4px 0 10px">Ajoutez des membres à cette tontine pour suivre leurs cotisations.</p><div class="btns"><button class="btn sm" data-act="m-new">Nouveau membre</button><button class="btn sm alt" data-act="t-open" data-id="'+t.id+'">Gérer les participants</button></div></div>';
+  else{
+    h+='<div class="card nextcard"><small class="note">Prochain bénéficiaire</small>';
+    if(nb){var m=mem(nb.id_membre);h+='<div class="row" style="margin:8px 0">'+av(m)+'<div class="grow"><div class="nm">'+esc(mname(m))+'</div><div class="note">Passage n° '+nb.ordre_passage+' · cagnotte estimée '+F(potOf(t))+'</div></div></div>'+
+      (isAdmin()?'<button class="btn" data-act="tour-new">Enregistrer le tour</button>':'');}
+    else h+='<p style="margin-top:6px">Tous les tours prévus ont été versés : le cycle est terminé.</p>';
+    h+='</div>';
+  }
+  if(retards.length){
+    h+='<div class="sec"><h2>Retards de cotisation</h2></div><div class="list">'+retards.slice(0,6).map(function(a){var m=mem(a.id_membre);
+      return '<div class="item">'+av(m)+'<div class="grow"><div class="t">'+esc(mname(m))+'</div><div class="s">'+esc(m.telephone)+'</div></div><div><div class="amt" style="color:var(--bad)">'+F(solde(a,t))+'</div>'+
+      '<div class="btns" style="margin-top:6px;justify-content:flex-end"><button class="btn sm alt" data-act="relance" data-id="'+a.id+'">Relancer</button><button class="btn sm" data-act="cot-new" data-id="'+a.id+'">Cotiser</button></div></div></div>';}).join('')+'</div>';
+  }
+  var last=cot.slice().sort(function(a,b){return (b.date_paiement+b.id).localeCompare(a.date_paiement+a.id);}).slice(0,5);
+  h+='<div class="sec"><h2>Derniers versements</h2><button class="back" data-act="nav" data-v="cotisations">Tout voir</button></div>';
+  h+=last.length?'<div class="list">'+last.map(cotRow).join('')+'</div>':'<div class="card note">Aucune cotisation enregistrée pour le moment.</div>';
+  return h+'</div>';
+}
+function cotRow(c){
+  var a=S.data.adhesions[c.id_adhesion],m=a?mem(a.id_membre):null;
+  return '<button class="item" data-act="receipt" data-id="'+c.id+'">'+av(m)+'<div class="grow"><div class="t">'+esc(mname(m))+'</div><div class="s">'+fdate(c.date_paiement)+' · '+MODE[c.mode_paiement]+' · '+esc(c.recu||'')+'</div></div><div class="amt">'+F(c.montant)+'</div></button>';
+}
+function vAccueilMembre(){
+  var me=mem(S.user.id_membre),h=title(me?'Bonjour '+me.prenom:'Bienvenue');
+  var ads=vals('adhesions').filter(function(a){return a.id_membre===S.user.id_membre;});
+  if(!me||!ads.length)return h+'<div class="card"><p>Votre compte n’est rattaché à aucune tontine pour le moment. Contactez l’administrateur.</p></div>';
+  h+='<div class="stack">';
+  ads.forEach(function(a){
+    var t=S.data.tontines[a.id_tontine];if(!t)return;
+    var s=solde(a,t),nb=nextBenef(t),got=gotT(a);
+    h+='<div class="card stack"><div class="row sb"><h2>'+esc(t.nom)+'</h2>'+pill(FREQ[t.frequence],'mute')+'</div>'+
+      '<div class="tiles"><div class="tile"><small>Total cotisé</small><b>'+F(paidBy(a.id))+'</b></div><div class="tile'+(s>0?' warn':'')+'"><small>'+(s>0?'Solde restant':'Solde')+'</small><b>'+F(s>0?s:0)+'</b></div>'+
+      '<div class="tile"><small>Mon tour</small><b>n° '+a.ordre_passage+' · '+got+'/'+nbT(a)+' reçu'+(got>1?'s':'')+'</b></div></div>'+
+      (nb?'<p class="note">Prochain bénéficiaire : '+esc(mname(mem(nb.id_membre)))+'</p>':'')+'</div>';
+  });
+  var ns=vals('notifications').filter(function(n){return n.id_membre===S.user.id_membre;}).sort(function(a,b){return b.date_envoi.localeCompare(a.date_envoi);}).slice(0,3);
+  if(ns.length)h+='<div class="sec"><h2>Dernières alertes</h2></div><div class="list">'+ns.map(notifRow).join('')+'</div>';
+  return h+'</div>';
+}
+
+/* ---------- Membres ---------- */
+function vMembres(){
+  var t=curT(),q=S.q.trim().toLowerCase();
+  var l=vals('membres').sort(function(a,b){return (a.numero||0)-(b.numero||0);}).filter(function(m){return !q||(mname(m)+' '+m.telephone).toLowerCase().indexOf(q)>=0;});
+  var h=title('Membres','',' <button class="btn" data-act="m-new">+ Ajouter</button>');
+  h+='<div class="stack"><div><label for="q" class="sr" style="position:absolute;left:-9999px">Rechercher</label><input id="q" type="search" placeholder="Rechercher un nom ou un numéro" value="'+esc(S.q)+'" data-input="q"></div>';
+  if(!vals('membres').length)return h+'<div class="empty"><h2>Aucun membre</h2><p>Ajoutez votre premier membre pour commencer.</p></div></div>';
+  h+='<div class="list">'+(l.length?l.map(function(m){
+    var a=t?adhesionsOf(t.id).find(function(x){return x.id_membre===m.id;}):null,s=a&&t?solde(a,t):0;
+    return '<button class="item" data-act="m-open" data-id="'+m.id+'">'+av(m)+'<div class="grow"><div class="t">'+esc(mname(m))+'</div><div class="s">N° '+String(m.numero||0).padStart(3,'0')+' · '+esc(m.telephone)+'</div></div><div style="text-align:right">'+
+      pill(m.statut==='actif'?'Actif':'Inactif',m.statut==='actif'?'ok':'mute')+(a&&m.statut==='actif'&&s>0?'<div class="s" style="color:var(--bad);margin-top:3px">'+F(s)+'</div>':'')+'</div></button>';
+  }).join(''):'<div class="item note">Aucun résultat.</div>')+'</div></div>';
+  return h;
+}
+function memberForm(m){
+  m=m||{};
+  return '<form data-form="membre" data-id="'+esc(m.id||'')+'" class="stack"><div class="two"><div class="fld" style="margin:0"><label for="f-prenom">Prénom</label><input id="f-prenom" name="prenom" required value="'+esc(m.prenom)+'"></div>'+
+   '<div class="fld" style="margin:0"><label for="f-nom">Nom</label><input id="f-nom" name="nom" required value="'+esc(m.nom)+'"></div></div>'+
+   '<div class="fld" style="margin:0"><label for="f-tel">Téléphone</label><input id="f-tel" name="telephone" type="tel" inputmode="tel" required value="'+esc(m.telephone)+'"></div>'+
+   '<div class="two"><div class="fld" style="margin:0"><label for="f-date">Date d’adhésion</label><input id="f-date" name="date_adhesion" type="date" required value="'+esc(m.date_adhesion||today())+'"></div>'+
+   '<div class="fld" style="margin:0"><label for="f-st">Statut</label><select id="f-st" name="statut"><option value="actif"'+(m.statut!=='inactif'?' selected':'')+'>Actif</option><option value="inactif"'+(m.statut==='inactif'?' selected':'')+'>Inactif</option></select></div></div>'+
+   '<div class="fld" style="margin:0"><label for="f-photo">Photo (facultative)</label><input id="f-photo" name="photo" type="file" accept="image/*"></div>'+
+   '<div class="err" id="f-err" role="alert"></div><button class="btn">'+(m.id?'Enregistrer':'Ajouter le membre')+'</button></form>';
+}
+function memberSheet(id){
+  var m=mem(id);if(!m)return '<p class="note">Ce membre n’existe plus.</p>';
+  var ads=vals('adhesions').filter(function(a){return a.id_membre===id;});
+  var acc=vals('utilisateurs').find(function(u){return u.id_membre===id;});
+  var h='<div class="row">'+av(m,true)+'<div class="grow"><h2>'+esc(mname(m))+'</h2><div class="note">N° '+String(m.numero||0).padStart(3,'0')+' · inscrit le '+fdate(m.date_adhesion)+'</div><div style="margin-top:4px">'+pill(m.statut==='actif'?'Actif':'Inactif',m.statut==='actif'?'ok':'mute')+'</div></div></div>';
+  h+='<div class="card row sb"><span>'+esc(m.telephone)+'</span><button class="btn sm alt" data-act="copy" data-text="'+esc(m.telephone)+'">Copier</button></div>';
+  h+='<h3>Tontines</h3>';
+  h+=ads.length?'<div class="list">'+ads.map(function(a){var t=S.data.tontines[a.id_tontine];if(!t)return '';var s=solde(a,t);
+    return '<div class="item"><div class="grow"><div class="t">'+esc(t.nom)+'</div><div class="s">Passage n° '+a.ordre_passage+' · '+nbT(a)+' tour'+(nbT(a)>1?'s':'')+' · '+F(perAmt(a))+' / '+PER[t.frequence]+'</div></div><div style="text-align:right"><div class="amt">'+F(paidBy(a.id))+'</div>'+(s>0?pill('Reste '+F(s),'bad'):pill('À jour','ok'))+'</div></div>';}).join('')+'</div>':'<p class="note">Ce membre ne participe à aucune tontine. Ajoutez-le depuis l’écran Tontines.</p>';
+  var hist=vals('cotisations').filter(function(c){return ads.some(function(a){return a.id===c.id_adhesion;});}).sort(function(a,b){return b.date_paiement.localeCompare(a.date_paiement);}).slice(0,8);
+  if(hist.length)h+='<h3>Historique</h3><div class="list">'+hist.map(cotRow).join('')+'</div>';
+  h+='<div class="btns"><button class="btn alt" data-act="m-edit" data-id="'+id+'">Modifier</button>'+(acc?pill('Compte créé','ok'):'<button class="btn alt" data-act="u-new" data-id="'+id+'">Créer un compte</button>')+
+     '<button class="btn alt" data-act="m-del" data-id="'+id+'" style="color:var(--bad);border-color:var(--bad)">Supprimer</button></div>';
+  return h;
+}
+
+/* ---------- Tontines ---------- */
+function vTontines(){
+  var l=T(),h=title('Tontines',true,'<button class="btn" data-act="t-new">+ Créer</button>');
+  if(!l.length)return h+emptyHome();
+  return h+'<div class="list">'+l.map(function(t){var ads=adhesionsOf(t.id);
+    return '<button class="item" data-act="t-open" data-id="'+t.id+'"><div class="grow"><div class="t">'+esc(t.nom)+'</div><div class="s">'+FREQ[t.frequence]+' · '+F(t.montant)+' · '+ads.length+' membre'+(ads.length>1?'s':'')+'</div><div class="s">Du '+fdate(t.date_debut)+(t.date_fin?' au '+fdate(t.date_fin):'')+'</div></div>'+
+      (t.date_fin&&t.date_fin<today()?pill('Clôturée','mute'):pill('En cours','ok'))+'</button>';}).join('')+'</div>';
+}
+function tontineForm(t){
+  t=t||{};
+  return '<form data-form="tontine" data-id="'+esc(t.id||'')+'" class="stack"><div class="fld" style="margin:0"><label for="t-nom">Nom de la tontine</label><input id="t-nom" name="nom" required value="'+esc(t.nom)+'"></div>'+
+   '<div class="two"><div class="fld" style="margin:0"><label for="t-m">Mise de base (F)</label><input id="t-m" name="montant" type="number" min="1" step="1" inputmode="numeric" required value="'+esc(t.montant||5000)+'"></div>'+
+   '<div class="fld" style="margin:0"><label for="t-f">Fréquence</label><select id="t-f" name="frequence">'+Object.keys(FREQ).map(function(k){return '<option value="'+k+'"'+((t.frequence||'cinq_jours')===k?' selected':'')+'>'+FREQ[k]+'</option>';}).join('')+'</select></div></div>'+
+   '<div class="two"><div class="fld" style="margin:0"><label for="t-d">Date de début</label><input id="t-d" name="date_debut" type="date" required value="'+esc(t.date_debut||today())+'"></div>'+
+   '<div class="fld" style="margin:0"><label for="t-e">Date de clôture</label><input id="t-e" name="date_fin" type="date" value="'+esc(t.date_fin||'')+'"></div></div>'+
+   '<div class="err" id="f-err" role="alert"></div><button class="btn">'+(t.id?'Enregistrer':'Créer la tontine')+'</button></form>';
+}
+function typeOptions(sel){return vals('types').sort(function(a,b){return a.montant-b.montant;}).map(function(x){return '<option value="'+x.id+'"'+(x.id===sel?' selected':'')+'>'+F(x.montant)+'</option>';}).join('');}
+function tontineSheet(id){
+  var t=S.data.tontines[id];if(!t)return '<p class="note">Cette tontine n’existe plus.</p>';
+  var ads=adhesionsOf(id),used={};ads.forEach(function(a){used[a.id_membre]=1;});
+  var libres=vals('membres').filter(function(m){return !used[m.id];}).sort(function(a,b){return (a.numero||0)-(b.numero||0);});
+  var h='<div class="row sb"><div><h2>'+esc(t.nom)+'</h2><div class="note">'+FREQ[t.frequence]+' · mise de base '+F(t.montant)+'</div></div><button class="btn sm alt" data-act="t-edit" data-id="'+id+'">Modifier</button></div>';
+  h+='<h3>Ordre de passage</h3>';
+  h+=ads.length?'<div class="list">'+ads.map(function(a,i){var m=mem(a.id_membre);
+    return '<div class="item"><span class="step">'+a.ordre_passage+'</span><div class="grow"><div class="t">'+esc(mname(m))+'</div><div class="s"><select data-change="adh-type" data-id="'+a.id+'" aria-label="Type de cotisation" style="min-height:34px;padding:4px 8px;width:auto">'+typeOptions(a.id_type)+'</select> <select data-change="adh-tours" data-id="'+a.id+'" aria-label="Nombre de tours" style="min-height:34px;padding:4px 8px;width:auto">'+toursOptions(nbT(a))+'</select>'+(nbT(a)>1?' <span class="note">= '+F(perAmt(a))+' / '+PER[t.frequence]+'</span>':'')+'</div></div>'+
+      '<div class="btns" style="flex-wrap:nowrap"><button class="btn sm alt" data-act="adh-up" data-id="'+a.id+'" aria-label="Monter"'+(i===0?' disabled':'')+'>↑</button><button class="btn sm alt" data-act="adh-down" data-id="'+a.id+'" aria-label="Descendre"'+(i===ads.length-1?' disabled':'')+'>↓</button><button class="btn sm alt" data-act="adh-del" data-id="'+a.id+'" aria-label="Retirer" style="color:var(--bad)">×</button></div></div>';}).join('')+'</div>':'<p class="note">Aucun participant pour le moment.</p>';
+  if(libres.length){
+    var def=vals('types').find(function(x){return x.montant===t.montant;});
+    h+='<form data-form="adh-add" data-id="'+id+'" class="card stack"><h3>Ajouter un participant</h3><div class="two"><div><label for="ad-m">Membre</label><select id="ad-m" name="id_membre">'+libres.map(function(m){return '<option value="'+m.id+'">'+esc(mname(m))+'</option>';}).join('')+'</select></div>'+
+      '<div><label for="ad-t">Cotisation de base</label><select id="ad-t" name="id_type">'+typeOptions(def&&def.id)+'</select></div></div><div><label for="ad-n">Nombre de tours</label><select id="ad-n" name="nb_tours">'+toursOptions(1)+'</select></div><button class="btn">Ajouter</button></form>';
+  }else if(vals('membres').length)h+='<p class="note">Tous les membres participent déjà à cette tontine.</p>';
+  else h+='<button class="btn alt" data-act="m-new">Créer un premier membre</button>';
+  return h;
+}
+
+/* ---------- Cotisations ---------- */
+function vCotis(){
+  var t=curT(),adm=isAdmin();
+  if(!t)return title('Cotisations')+(adm?emptyHome():'<div class="card"><p class="note">Aucune tontine disponible.</p></div>');
+  var mine=function(a){return adm||a.id_membre===S.user.id_membre;};
+  var ads=adhesionsOf(t.id).filter(mine);
+  var h=title('Cotisations','',adm?'<button class="btn" data-act="cot-new">+ Nouvelle</button>':'');
+  h+='<div class="stack"><div class="seg" role="group" aria-label="Affichage"><button data-act="cseg" data-v="hist" aria-pressed="'+(S.cseg==='hist')+'">Historique</button><button data-act="cseg" data-v="soldes" aria-pressed="'+(S.cseg==='soldes')+'">Soldes</button></div>';
+  if(S.cseg==='hist'){
+    var ids={};ads.forEach(function(a){ids[a.id]=1;});
+    var l=cotisOf(t).filter(function(c){return ids[c.id_adhesion];}).sort(function(a,b){return (b.date_paiement+b.id).localeCompare(a.date_paiement+a.id);});
+    if(!l.length)return h+'<div class="empty"><h2>Aucune cotisation</h2><p>Les versements apparaîtront ici avec leur reçu.</p></div></div>';
+    var day='';
+    l.slice(0,80).forEach(function(c){
+      if(c.date_paiement!==day){day=c.date_paiement;var tot=sum(l.filter(function(x){return x.date_paiement===day;}),function(x){return x.montant;});
+        h+='<div class="sec"><h3>'+(day===today()?'Aujourd’hui':fdate(day))+'</h3><span class="note">'+F(tot)+'</span></div>';}
+      h+='<div class="list">'+cotRow(c)+'</div>';
+    });
+  }else{
+    h+='<div class="list">'+ads.map(function(a){var m=mem(a.id_membre),s=solde(a,t);
+      return '<div class="item">'+av(m)+'<div class="grow"><div class="t">'+esc(mname(m))+'</div><div class="s">Cotisé '+F(paidBy(a.id))+' sur '+F(due(a,t))+' dus</div></div>'+(s>0?pill('Reste '+F(s),'bad'):s<0?pill('Avance '+F(-s),'gold'):pill('À jour','ok'))+'</div>';}).join('')+'</div>';
+  }
+  return h+'</div>';
+}
+function cotForm(pre,c){
+  var ea=c?S.data.adhesions[c.id_adhesion]:null,t=ea?S.data.tontines[ea.id_tontine]:curT();
+  if(!t)return '<p class="note">Créez d’abord une tontine.</p>';
+  var ads=adhesionsOf(t.id).filter(function(a){return isActive(a)||(ea&&a.id===ea.id);});
+  if(!ads.length)return '<p class="note">Aucun membre actif dans cette tontine.</p>';
+  var a0=ads.find(function(a){return a.id===pre;})||ads[0],nb=nextBenef(t);
+  return '<form data-form="cotis" data-id="'+esc(c?c.id:'')+'" class="stack"><p class="note" id="c-note"'+(c?'':' hidden')+'>'+(c?'Correction du reçu '+esc(c.recu||''):'')+'</p><div class="fld" style="margin:0"><label for="c-a">Membre</label><select id="c-a" name="id_adhesion" data-change="cot-pick">'+ads.map(function(a){var s=solde(a,t);
+      return '<option value="'+a.id+'" data-m="'+perAmt(a)+'" data-ben="'+(nb&&nb.id===a.id?'1':'0')+'"'+(a.id===a0.id?' selected':'')+'>'+esc(mname(mem(a.id_membre)))+(s>0?' · reste '+Fp(s):'')+'</option>';}).join('')+'</select></div>'+
+    '<div class="two"><div class="fld" style="margin:0"><label for="c-d">Date</label><input id="c-d" name="date_paiement" type="date" required value="'+esc(c?c.date_paiement:today())+'"></div>'+
+    '<div class="fld" style="margin:0"><label for="c-m">Montant (F)</label><input id="c-m" name="montant" type="number" min="1" step="1" inputmode="numeric" required value="'+(c?c.montant:perAmt(a0))+'"></div></div>'+
+    '<div class="fld" style="margin:0"><label for="c-mode">Mode de paiement</label><select id="c-mode" name="mode_paiement"><option value="especes"'+(c&&c.mode_paiement==='especes'?' selected':'')+'>Espèces</option><option value="mobile_money"'+(c&&c.mode_paiement==='mobile_money'?' selected':'')+'>Mobile money</option></select></div>'+
+    '<div class="fld" id="c-fw" style="margin:0"><label for="c-f">Frais bénéficiaire (F)</label><input id="c-f" name="frais_beneficiaire" type="number" min="0" step="1" inputmode="numeric" pattern="[0-9]*" placeholder="0" value="'+(c?(c.frais_beneficiaire||0):0)+'"></div>'+
+    '<div class="err" id="f-err" role="alert"></div>'+
+    '<div style="display:flex;gap:10px"><button type="button" class="btn alt" style="flex:1;min-width:0" data-act="cot-load">Modifier</button><button class="btn" style="flex:1;min-width:0">Enregistrer</button></div></form>';
+}
+function receiptText(c){
+  var a=S.data.adhesions[c.id_adhesion],t=a?S.data.tontines[a.id_tontine]:null,m=a?mem(a.id_membre):null;
+  var s=a&&t?solde(a,t):0;
+  return ['REÇU DE COTISATION','N° '+(c.recu||'—'),'------------------------------','Tontine : '+(t?t.nom:'—'),'Membre  : '+mname(m),'Date    : '+fdate(c.date_paiement),'Montant : '+Fp(c.montant),'Mode    : '+MODE[c.mode_paiement],(c.frais_beneficiaire>0?'Frais bénéficiaire : '+Fp(c.frais_beneficiaire):null),'------------------------------',s>0?'Solde restant : '+Fp(s):(s<0?'Avance : '+Fp(-s):'Compte à jour')].filter(function(x){return x!==null;}).join('\n');
+}
+
+/* ---------- Tours ---------- */
+function vTours(){
+  var t=curT(),adm=isAdmin();
+  if(!t)return title('Tours de paiement')+(adm?emptyHome():'<div class="card"><p class="note">Aucune tontine disponible.</p></div>');
+  var ads=adhesionsOf(t.id),tl=toursOf(t.id),nb=nextBenef(t),step=stepOf(t);
+  var h=title('Tours de paiement')+'<div class="stack">';
+  if(!ads.length)return h+'<div class="empty"><h2>Aucun participant</h2><p>Ajoutez des membres à la tontine pour établir l’ordre de passage.</p></div></div>';
+  h+='<div class="card nextcard"><small class="note">Prochain bénéficiaire</small>';
+  if(nb){var m=mem(nb.id_membre);h+='<div class="row" style="margin:8px 0">'+av(m)+'<div class="grow"><div class="nm">'+esc(mname(m))+'</div><div class="note">Cagnotte estimée '+F(potOf(t))+'</div></div></div>'+(adm?'<button class="btn" data-act="tour-new">Enregistrer le tour</button>':'');}
+  else h+='<p style="margin-top:6px">Le cycle est terminé : tous les tours prévus ont été versés.</p>';
+  h+='</div><div class="sec"><h2>Ordre de passage</h2></div><div class="list">';
+  var k=0;
+  ads.forEach(function(a){
+    var m=mem(a.id_membre),g=gotT(a),tot=nbT(a),done=g>=tot,isNext=nb&&nb.id===a.id,cls=done?'done':isNext?'next':'';
+    var when=g+' / '+tot+' tour'+(tot>1?'s':'')+' reçu'+(g>1?'s':'');
+    if(!done){if(isActive(a)){when+=' · prochain vers le '+fdate(step(today(),k));k+=tot-g;}else when+=' · membre inactif';}
+    h+='<div class="item"><span class="step '+cls+'">'+(done?'✓':a.ordre_passage)+'</span><div class="grow"><div class="t">'+esc(mname(m))+'</div><div class="s">'+when+'</div></div>'+(isNext?pill('Prochain','ok'):'')+'</div>';
+  });
+  h+='</div>';
+  h+='<div class="sec"><h2>Historique</h2></div>';
+  var asc=tl.slice().sort(function(a,b){return a.date_tour===b.date_tour?String(a.id).localeCompare(String(b.id)):a.date_tour.localeCompare(b.date_tour);});
+  h+=asc.length?'<div class="list">'+asc.map(function(x,i){var m=mem(x.id_membre);
+    var btns=adm?'<div style="display:flex;gap:8px;width:100%">'+(x.confirme?'':'<button class="btn sm" style="flex:1;min-width:0" data-act="tour-ok" data-id="'+x.id+'">Confirmer</button>')+
+      '<button class="btn sm alt" style="flex:1;min-width:0" data-act="tour-edit" data-id="'+x.id+'">Modifier</button>'+
+      '<button class="btn sm alt" style="flex:1;min-width:0;color:var(--bad);border-color:var(--bad)" data-act="tour-del" data-id="'+x.id+'">Supprimer</button></div>':'';
+    return '<div class="item" style="flex-direction:column;align-items:stretch;gap:10px"><div class="row"><span class="step done">'+(i+1)+'</span>'+av(m)+'<div class="grow"><div class="t">'+esc(mname(m))+'</div><div class="s">Tour n° '+(i+1)+' · '+fdate(x.date_tour)+' · '+(x.periodicite==='mensuel'?'Mensuel':'Journalier')+'</div></div><div style="text-align:right"><div class="amt">'+F(x.montant_recu)+'</div>'+
+      (x.confirme?pill('Confirmé','ok'):pill('À confirmer','gold'))+'</div></div>'+btns+'</div>';}).join('')+'</div>':'<div class="card note">Aucun tour enregistré pour le moment.</div>';
+  return h+'</div>';
+}
+function tourForm(x){
+  var t=x?S.data.tontines[x.id_tontine]:curT();if(!t)return '';
+  var ads=adhesionsOf(t.id).filter(function(a){return isActive(a)||(x&&a.id_membre===x.id_membre);}),nb=nextBenef(t);
+  if(!ads.length)return '<p class="note">Aucun membre actif.</p>';
+  var selM=x?x.id_membre:(nb&&nb.id_membre);
+  return '<form data-form="tour" data-id="'+esc(x?x.id:'')+'" class="stack"><div class="fld" style="margin:0"><label for="o-b">Bénéficiaire</label><select id="o-b" name="id_membre">'+ads.map(function(a){return '<option value="'+a.id_membre+'"'+(a.id_membre===selM?' selected':'')+'>'+esc(mname(mem(a.id_membre)))+' (n° '+a.ordre_passage+' · '+gotT(a)+'/'+nbT(a)+' tours)</option>';}).join('')+'</select></div>'+
+    '<div class="two"><div class="fld" style="margin:0"><label for="o-d">Date du tour</label><input id="o-d" name="date_tour" type="date" required value="'+esc(x?x.date_tour:today())+'"></div>'+
+    '<div class="fld" style="margin:0"><label for="o-m">Montant reçu (F)</label><input id="o-m" name="montant_recu" type="number" min="1" step="1" inputmode="numeric" required value="'+(x?x.montant_recu:potOf(t))+'"></div></div>'+
+    '<div class="fld" style="margin:0"><label for="o-p">Type de tour</label><select id="o-p" name="periodicite"><option value="journalier"'+((x?x.periodicite==='journalier':t.frequence!=='mensuelle')?' selected':'')+'>Journalier</option><option value="mensuel"'+((x?x.periodicite==='mensuel':t.frequence==='mensuelle')?' selected':'')+'>Mensuel</option></select></div>'+
+    '<div class="err" id="f-err" role="alert"></div><button class="btn">'+(x?'Enregistrer les modifications':'Enregistrer le tour')+'</button></form>';
+}
+
+/* ---------- Notifications ---------- */
+var NT={rappel:['Rappel','gold'],retard:['Retard','bad'],tour:['Tour','ok']};
+function notifRow(n){
+  var m=mem(n.id_membre);
+  return '<div class="item" style="align-items:flex-start">'+av(m)+'<div class="grow"><div class="row sb"><div class="t">'+esc(mname(m))+'</div>'+pill(NT[n.type][0],NT[n.type][1])+'</div><div class="s">'+esc(n.message)+'</div><div class="s">'+ftime(n.date_envoi)+(isAdmin()&&m?' · '+esc(m.telephone):'')+'</div></div>'+
+    '<button class="btn sm alt" data-act="copy" data-text="'+esc(n.message)+'">Copier</button></div>';
+}
+function notify(idm,type,msg){persist('notifications',{id:uid(),type:type,message:msg,date_envoi:new Date().toISOString(),id_membre:idm});}
+function vNotifs(){
+  var adm=isAdmin(),t=curT(),h=title(adm?'Notifications':'Mes alertes',adm);
+  var l=vals('notifications').filter(function(n){return adm||n.id_membre===S.user.id_membre;}).sort(function(a,b){return b.date_envoi.localeCompare(a.date_envoi);}).slice(0,60);
+  h+='<div class="stack">';
+  if(adm&&t){
+    h+='<div class="card stack"><h3>Envoyer une alerte</h3><div class="btns"><button class="btn sm" data-act="n-retard">Retardataires</button><button class="btn sm alt" data-act="n-rappel">Rappel à tous</button><button class="btn sm alt" data-act="n-tour">Annoncer le tour</button></div>'+
+      '<p class="note">Les messages sont enregistrés ici. Pour les envoyer, copiez-les puis collez-les dans un SMS ou WhatsApp.</p></div>';
+  }
+  h+=l.length?'<div class="list">'+l.map(notifRow).join('')+'</div>':'<div class="empty"><h2>Aucune notification</h2><p>Les rappels et les alertes de tour apparaîtront ici.</p></div>';
+  return h+'</div>';
+}
+
+/* ---------- Rapports ---------- */
+function reportData(){
+  var t=curT();if(!t)return null;
+  var mode=S.rep.mode,key=mode==='jour'?S.rep.date:S.rep.month;
+  var inR=function(d){return mode==='jour'?d===key:d.slice(0,7)===key;};
+  var ads=adhesionsOf(t.id);
+  var rows=ads.map(function(a){
+    var cs=vals('cotisations').filter(function(c){return c.id_adhesion===a.id&&inR(c.date_paiement);});
+    return {nom:mname(mem(a.id_membre)),nb:cs.length,montant:sum(cs,function(c){return c.montant;}),solde:solde(a,t)};
+  });
+  var tours=toursOf(t.id).filter(function(x){return inR(x.date_tour);});
+  return {t:t,key:key,label:mode==='jour'?fdate(key):fmonth(key),rows:rows,tours:tours,total:sum(rows,function(r){return r.montant;}),nb:sum(rows,function(r){return r.nb;}),recu:sum(tours,function(x){return x.montant_recu;})};
+}
+function vRapports(){
+  var r=reportData(),h=title('Rapports',true);
+  if(!r)return h+emptyHome();
+  h+='<div class="stack"><div class="seg" role="group" aria-label="Période"><button data-act="rmode" data-v="jour" aria-pressed="'+(S.rep.mode==='jour')+'">Journalier</button><button data-act="rmode" data-v="mois" aria-pressed="'+(S.rep.mode==='mois')+'">Mensuel</button></div>'+
+    '<div><label for="r-d">'+(S.rep.mode==='jour'?'Jour':'Mois')+'</label>'+(S.rep.mode==='jour'?'<input id="r-d" type="date" data-change="rdate" value="'+esc(S.rep.date)+'">':'<input id="r-d" type="month" data-change="rmonth" value="'+esc(S.rep.month)+'">')+'</div>'+
+    '<div class="tiles"><div class="tile"><small>Encaissé</small><b>'+F(r.total)+'</b></div><div class="tile"><small>Paiements</small><b>'+r.nb+'</b></div><div class="tile"><small>Tours versés</small><b>'+F(r.recu)+'</b></div></div>'+
+    '<div class="tablewrap"><table><thead><tr><th>Membre</th><th class="n">Paiements</th><th class="n">Montant</th><th class="n">Solde dû</th></tr></thead><tbody>'+
+    (r.rows.length?r.rows.map(function(x){return '<tr><td>'+esc(x.nom)+'</td><td class="n">'+x.nb+'</td><td class="n">'+F(x.montant)+'</td><td class="n"'+(x.solde>0?' style="color:var(--bad)"':'')+'>'+F(Math.max(0,x.solde))+'</td></tr>';}).join(''):'<tr><td colspan="4" class="note">Aucun participant.</td></tr>')+
+    '</tbody></table></div>';
+  if(r.tours.length)h+='<div class="list">'+r.tours.map(function(x){return '<div class="item"><div class="grow"><div class="t">Tour : '+esc(mname(mem(x.id_membre)))+'</div><div class="s">'+fdate(x.date_tour)+'</div></div><div class="amt">'+F(x.montant_recu)+'</div></div>';}).join('')+'</div>';
+  h+='<div class="btns"><button class="btn" data-act="exp-pdf">Exporter en PDF</button><button class="btn alt" data-act="exp-csv">Exporter pour Excel</button></div></div>';
+  return h;
+}
+function plainDownload(name,data){
+  try{
+    var ext=name.split('.').pop().toLowerCase(),types={csv:'text/csv;charset=utf-8',json:'application/json',pdf:'application/pdf'};
+    var blob=data instanceof Blob?data:new Blob([data],{type:types[ext]||'application/octet-stream'});
+    var url=URL.createObjectURL(blob),a=document.createElement('a');
+    a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();
+    setTimeout(function(){URL.revokeObjectURL(url);},4000);toast('Fichier téléchargé.');
+  }catch(e){toast('Le fichier n\u2019a pas pu être créé.');}
+}
+async function saveFile(name,data){
+  if(!S.dl){plainDownload(name,data);return;}
+  try{await S.dl.save({filename:name,data:data});toast('Fichier prêt.');}
+  catch(e){if(e&&e.code!=='declined')toast('Le fichier n’a pas pu être enregistré.');}
+}
+function exportCsv(){
+  var r=reportData();if(!r)return;
+  var lines=[['Rapport',r.t.nom,r.label].join(';'),'',['Membre','Paiements','Montant (F)','Solde dû (F)'].join(';')];
+  r.rows.forEach(function(x){lines.push([x.nom,x.nb,x.montant,Math.max(0,x.solde)].join(';'));});
+  lines.push(['Total',r.nb,r.total,''].join(';'));
+  saveFile('rapport-'+(S.rep.mode==='jour'?S.rep.date:S.rep.month)+'.csv','﻿'+lines.join('\r\n'));
+}
+function exportPdf(){
+  var r=reportData();if(!r)return;
+  if(!(window.jspdf&&window.jspdf.jsPDF)){toast('Le module PDF n’a pas pu se charger.');return;}
+  var doc=new window.jspdf.jsPDF();
+  doc.setFontSize(16);doc.text('Rapport '+(S.rep.mode==='jour'?'journalier':'mensuel')+' - '+r.t.nom,14,18);
+  doc.setFontSize(11);doc.text(r.label+'   |   Encaissé : '+Fp(r.total)+'   |   '+r.nb+' paiement(s)',14,26);
+  var body=r.rows.map(function(x){return [x.nom,String(x.nb),Fp(x.montant),Fp(Math.max(0,x.solde))];});
+  if(typeof doc.autoTable==='function')doc.autoTable({startY:32,head:[['Membre','Paiements','Montant','Solde dû']],body:body,styles:{fontSize:10}});
+  else body.forEach(function(b,i){doc.text(b.join('   '),14,36+i*7);});
+  saveFile('rapport-'+(S.rep.mode==='jour'?S.rep.date:S.rep.month)+'.pdf',doc.output('blob'));
+}
+
+/* ---------- Plus & Sécurité ---------- */
+function vPlus(){
+  var items=[['tontines','Tontines','Créer et organiser vos tontines','coins'],['notifications','Notifications','Rappels et alertes de tour','bell'],['rapports','Rapports','Journalier, mensuel, export PDF et Excel','tour'],['securite','Sécurité','Comptes, PIN, sauvegarde, historique','shield']];
+  return title('Plus')+'<div class="list">'+items.map(function(i){return '<button class="item" data-act="nav" data-v="'+i[0]+'"><span class="av">'+ic(i[3])+'</span><div class="grow"><div class="t">'+i[1]+'</div><div class="s">'+i[2]+'</div></div><span aria-hidden="true">›</span></button>';}).join('')+'</div>';
+}
+function vSecurite(){
+  var adm=isAdmin(),h=title('Sécurité',adm)+'<div class="stack">';
+  if(adm)h+='<form data-form="pin" class="card stack"><h3>Changer mon code PIN</h3><div class="fld" style="margin:0"><label for="p-o">Ancien PIN</label><input id="p-o" name="old" type="password" inputmode="numeric" maxlength="6" required></div>'+
+    '<div class="two"><div><label for="p-n">Nouveau PIN</label><input id="p-n" name="n1" type="password" inputmode="numeric" pattern="\\d{4,6}" maxlength="6" required></div><div><label for="p-n2">Confirmer</label><input id="p-n2" name="n2" type="password" inputmode="numeric" pattern="\\d{4,6}" maxlength="6" required></div></div>'+
+    '<div class="err" id="f-err" role="alert"></div><button class="btn">Changer le PIN</button></form>';
+  else h+='<div class="card"><h3>Code PIN</h3><p class="note" style="margin-top:4px">Pour changer votre code PIN, demandez à l’administrateur de recréer votre compte.</p></div>';
+  if(adm){
+    var us=vals('utilisateurs').sort(function(a,b){return a.role.localeCompare(b.role);});
+    h+='<div class="sec"><h2>Comptes</h2><button class="btn sm" data-act="u-new">+ Compte</button></div><div class="list">'+us.map(function(u){var m=u.id_membre?mem(u.id_membre):null;
+      return '<div class="item"><div class="grow"><div class="t">'+esc(m?mname(m):'Administrateur')+'</div><div class="s">'+esc(u.telephone)+'</div></div>'+pill(u.role==='admin'?'Admin':'Membre',u.role==='admin'?'gold':'mute')+(u.id!==S.user.id?'<button class="btn sm alt" data-act="u-del" data-id="'+u.id+'" aria-label="Supprimer le compte" style="color:var(--bad)">×</button>':'')+'</div>';}).join('')+'</div>';
+    var jl=vals('journal').sort(function(a,b){return b.ts-a.ts;}).slice(0,30);
+    h+='<div class="sec"><h2>Historique des modifications</h2></div>'+(jl.length?'<div class="list">'+jl.map(function(j){return '<div class="item"><div class="grow"><div class="t">'+esc(j.action)+'</div><div class="s">'+esc(j.detail)+'</div><div class="s">'+ftime(j.ts)+' · '+esc(j.user)+'</div></div></div>';}).join('')+'</div>':'<div class="card note">Aucune modification enregistrée.</div>');
+    h+='<div class="card stack"><h3>Sauvegarde</h3><p class="note">Vos données sont enregistrées automatiquement à chaque modification. Vous pouvez aussi télécharger une copie complète (sans les codes PIN).</p><div class="btns"><button class="btn alt" data-act="backup">Télécharger une sauvegarde</button></div><div><label for="imp">Restaurer depuis une sauvegarde</label><input id="imp" type="file" accept=".json,application/json" data-change="import"></div><p class="note">La restauration ajoute ou remplace les éléments du fichier. Les comptes et codes PIN ne sont pas inclus.</p></div>';
+    h+='<div class="card stack"><h3>Zone sensible</h3>'+(S.confirmClear?'<p>Supprimer tous les membres, tontines, cotisations, tours et notifications ? Cette action est définitive.</p><div class="btns"><button class="btn bad" data-act="clear-yes">Oui, tout supprimer</button><button class="btn alt" data-act="clear-no">Annuler</button></div>':'<div><button class="btn alt" data-act="clear" style="color:var(--bad);border-color:var(--bad)">Effacer toutes les données</button></div>')+'</div>';
+  }
+  h+='<div><button class="btn alt" data-act="logout">Se déconnecter</button></div></div>';
+  return h;
+}
+function userForm(preM){
+  var libres=vals('membres').filter(function(m){return !vals('utilisateurs').some(function(u){return u.id_membre===m.id;});});
+  var pm=preM?mem(preM):null;
+  return '<form data-form="user" class="stack"><div class="fld" style="margin:0"><label for="u-m">Membre concerné</label><select id="u-m" name="id_membre" data-change="user-pick"><option value="">Aucun (administrateur)</option>'+libres.map(function(m){return '<option value="'+m.id+'" data-tel="'+esc(m.telephone)+'"'+(pm&&pm.id===m.id?' selected':'')+'>'+esc(mname(m))+'</option>';}).join('')+'</select></div>'+
+    '<div class="fld" style="margin:0"><label for="u-t">Téléphone de connexion</label><input id="u-t" name="tel" type="tel" inputmode="tel" required value="'+esc(pm?pm.telephone:'')+'"></div>'+
+    '<div class="two"><div><label for="u-r">Rôle</label><select id="u-r" name="role"><option value="membre"'+(pm?' selected':'')+'>Membre</option><option value="admin"'+(pm?'':' selected')+'>Administrateur</option></select></div>'+
+    '<div><label for="u-p">Code PIN</label><input id="u-p" name="pin" type="password" inputmode="numeric" pattern="\\d{4,6}" maxlength="6" required></div></div>'+
+    '<div class="err" id="f-err" role="alert"></div><button class="btn">Créer le compte</button></form>';
+}
+
+/* ---------- Feuilles (fenêtres du bas) ---------- */
+function openSheet(ttl,body,live){S.sheet={title:ttl,body:body,live:!!live};paintSheet();}
+function closeSheet(){S.sheet=null;paintSheet();}
+function paintSheet(){
+  var el=$('#sheet');
+  if(!S.sheet){el.innerHTML='';el.hidden=true;return;}
+  var old=el.querySelector('.sbody'),st=old?old.scrollTop:0;
+  var b=typeof S.sheet.body==='function'?S.sheet.body():S.sheet.body;
+  el.hidden=false;
+  el.innerHTML='<div class="scrim" data-act="close"></div><section class="sheet" role="dialog" aria-modal="true" aria-label="'+esc(S.sheet.title)+'"><header><h2>'+esc(S.sheet.title)+'</h2><button class="x" data-act="close" aria-label="Fermer">×</button></header><div class="sbody">'+b+'</div></section>';
+  var nb=el.querySelector('.sbody');if(nb&&st)nb.scrollTop=st;
+}
+var toastT=0;
+function toast(msg){var el=$('#toast');el.textContent=msg;el.hidden=false;clearTimeout(toastT);toastT=setTimeout(function(){el.hidden=true;},3200);}
+async function copyText(txt){
+  try{await navigator.clipboard.writeText(txt);toast('Copié.');return;}catch(e){}
+  try{var ta=document.createElement('textarea');ta.value=txt;ta.style.cssText='position:fixed;opacity:0';document.body.appendChild(ta);ta.select();var ok=document.execCommand('copy');ta.remove();toast(ok?'Copié.':'Copie impossible : sélectionnez le texte à la main.');}catch(e){toast('Copie impossible : sélectionnez le texte à la main.');}
+}
+function showErr(msg){var e=$('#f-err');if(e)e.textContent=msg;}
+function resizePhoto(file){
+  return new Promise(function(res){
+    if(!file||!file.size){res(null);return;}
+    var fr=new FileReader();
+    fr.onload=function(){var im=new Image();im.onload=function(){
+      var s=96,c=document.createElement('canvas');c.width=c.height=s;var x=c.getContext('2d'),m=Math.min(im.width,im.height);
+      x.drawImage(im,(im.width-m)/2,(im.height-m)/2,m,m,0,0,s,s);res(c.toDataURL('image/jpeg',0.72));};im.onerror=function(){res(null);};im.src=fr.result;};
+    fr.onerror=function(){res(null);};fr.readAsDataURL(file);
+  });
+}
+
+/* ---------- Actions ---------- */
+var A={
+  close:function(){closeSheet();},
+  nav:function(el){S.view=el.dataset.v;S.sheet=null;paintSheet();render();window.scrollTo(0,0);},
+  logout:function(){doLogout('');},
+  cseg:function(el){S.cseg=el.dataset.v;render();},
+  rmode:function(el){S.rep.mode=el.dataset.v;render();},
+  copy:function(el){copyText(el.dataset.text);},
+  'm-new':function(){openSheet('Nouveau membre',memberForm());},
+  'm-open':function(el){var id=el.dataset.id;openSheet('Fiche membre',function(){return memberSheet(id);},true);},
+  'm-edit':function(el){openSheet('Modifier le membre',memberForm(mem(el.dataset.id)));},
+  'm-del':function(el){
+    var id=el.dataset.id,m=mem(id);
+    if(vals('adhesions').some(function(a){return a.id_membre===id;})||vals('tours').some(function(x){return x.id_membre===id;})){toast('Retirez d’abord ce membre des tontines et tours.');return;}
+    if(el.dataset.ok!=='1'){el.dataset.ok='1';el.textContent='Confirmer la suppression';el.classList.add('bad');return;}
+    vals('notifications').filter(function(n){return n.id_membre===id;}).forEach(function(n){drop('notifications',n.id);});
+    drop('membres',id);logA('Membre supprimé',mname(m));closeSheet();toast('Membre supprimé.');
+  },
+  't-new':function(){openSheet('Nouvelle tontine',tontineForm());},
+  't-edit':function(el){openSheet('Modifier la tontine',tontineForm(S.data.tontines[el.dataset.id]));},
+  't-open':function(el){var id=el.dataset.id;openSheet('Participants',function(){return tontineSheet(id);},true);},
+  'adh-up':function(el){moveAdh(el.dataset.id,-1);},
+  'adh-down':function(el){moveAdh(el.dataset.id,1);},
+  'adh-del':function(el){
+    var a=S.data.adhesions[el.dataset.id];if(!a)return;
+    if(vals('cotisations').some(function(c){return c.id_adhesion===a.id;})){toast('Impossible : des cotisations sont enregistrées.');return;}
+    drop('adhesions',a.id);logA('Participant retiré',mname(mem(a.id_membre)));
+  },
+  'cot-load':function(el){
+    var f=el.closest('form'),sel=f&&f.querySelector('#c-a');if(!sel)return;
+    var l=vals('cotisations').filter(function(c){return c.id_adhesion===sel.value;}).sort(function(a,b){return (b.date_paiement+b.id).localeCompare(a.date_paiement+a.id);});
+    if(!l.length){showErr('Aucune cotisation enregistrée pour ce membre : il n’y a rien à modifier.');return;}
+    var c=l[0];f.dataset.id=c.id;
+    $('#c-d').value=c.date_paiement;$('#c-m').value=c.montant;$('#c-mode').value=c.mode_paiement;$('#c-f').value=c.frais_beneficiaire||0;
+    var n=$('#c-note');if(n){n.hidden=false;n.textContent='Correction du reçu '+(c.recu||'')+' (dernière cotisation de ce membre). Modifiez les champs puis touchez Enregistrer.';}
+    showErr('');
+  },
+  'cot-edit':function(el){var c=S.data.cotisations[el.dataset.id];if(!c)return;openSheet('Modifier la cotisation',cotForm(c.id_adhesion,c));},
+  'cot-new':function(el){openSheet('Nouvelle cotisation',cotForm(el&&el.dataset.id));},
+  receipt:function(el){var c=S.data.cotisations[el.dataset.id];if(!c)return;var txt=receiptText(c);openSheet('Reçu de cotisation','<div class="receipt">'+esc(txt)+'</div><div class="btns"><button class="btn" data-act="copy" data-text="'+esc(txt)+'">Copier le reçu</button>'+(isAdmin()?'<button class="btn alt" data-act="cot-edit" data-id="'+c.id+'">Modifier</button>':'')+'<button class="btn alt" data-act="close">Fermer</button></div>');},
+  'tour-new':function(){openSheet('Enregistrer le tour',tourForm());},
+  'tour-edit':function(el){var x=S.data.tours[el.dataset.id];if(!x)return;openSheet('Modifier le tour',tourForm(x));},
+  'tour-del':function(el){
+    var x=S.data.tours[el.dataset.id];if(!x)return;
+    if(el.dataset.ok!=='1'){el.dataset.ok='1';el.textContent='Confirmer ?';el.classList.add('bad');return;}
+    drop('tours',x.id);logA('Tour supprimé',mname(mem(x.id_membre))+' · '+Fp(x.montant_recu)+' · '+fdate(x.date_tour));toast('Tour supprimé.');
+  },
+  'tour-ok':function(el){var x=S.data.tours[el.dataset.id];if(!x)return;persist('tours',Object.assign({},x,{confirme:true}));logA('Tour confirmé',mname(mem(x.id_membre)));toast('Tour confirmé.');},
+  relance:function(el){var a=S.data.adhesions[el.dataset.id],t=a&&S.data.tontines[a.id_tontine];if(!a||!t)return;relanceOne(a,t);toast('Alerte enregistrée. Copiez-la depuis Notifications.');},
+  'n-retard':function(){var t=curT();if(!t)return;var l=adhesionsOf(t.id).filter(function(a){return isActive(a)&&solde(a,t)>0;});if(!l.length){toast('Aucun retard à signaler.');return;}l.forEach(function(a){relanceOne(a,t);});logA('Alertes de retard',l.length+' membre(s)');toast(l.length+' alerte(s) créée(s).');},
+  'n-rappel':function(){var t=curT();if(!t)return;var l=adhesionsOf(t.id).filter(isActive);if(!l.length){toast('Aucun membre actif.');return;}l.forEach(function(a){var m=mem(a.id_membre);notify(m.id,'rappel','Bonjour '+m.prenom+', rappel : pensez à votre cotisation de '+Fp(perAmt(a))+' pour « '+t.nom+' ».');});logA('Rappel général',t.nom);toast(l.length+' rappel(s) créé(s).');},
+  'n-tour':function(){var t=curT();if(!t)return;var nb=nextBenef(t);if(!nb){toast('Aucun bénéficiaire à annoncer.');return;}var m=mem(nb.id_membre);notify(m.id,'tour','Bonjour '+m.prenom+', c’est bientôt votre tour de recevoir la cagnotte de « '+t.nom+' » (environ '+Fp(potOf(t))+').');logA('Annonce de tour',mname(m));toast('Alerte de tour créée.');},
+  'exp-pdf':exportPdf,'exp-csv':exportCsv,
+  backup:function(){var d={};COLL.forEach(function(c){if(c!=='utilisateurs')d[c]=S.data[c];});saveFile('sauvegarde-tontine-'+today()+'.json',JSON.stringify(d,null,1));},
+  'u-new':function(el){openSheet('Nouveau compte',userForm(el&&el.dataset&&el.dataset.id));},
+  'u-del':function(el){var u=S.data.utilisateurs[el.dataset.id];if(!u||u.id===S.user.id)return;if(el.dataset.ok!=='1'){el.dataset.ok='1';el.textContent='Sûr ?';return;}drop('utilisateurs',u.id);logA('Compte supprimé',u.telephone);toast('Compte supprimé.');},
+  clear:function(){S.confirmClear=true;render();},
+  'clear-no':function(){S.confirmClear=false;render();},
+  'clear-yes':async function(){
+    S.confirmClear=false;
+    ['membres','tontines','adhesions','cotisations','tours','notifications','journal'].forEach(function(c){Object.keys(S.data[c]).forEach(function(id){drop(c,id);});});
+    toast('Données effacées.');
+  },
+  demo:function(){loadDemo();toast('Données de démonstration chargées.');}
+};
+function okId(v){return typeof v==='string'&&/^[A-Za-z0-9_-]{1,60}$/.test(v);}
+function validRec(c,v){
+  for(var k in v){if((k==='id'||k.indexOf('id_')===0)&&!okId(v[k]))return false;}
+  if(c==='notifications')return !!NT[v.type]&&typeof v.date_envoi==='string'&&typeof v.message==='string';
+  if(c==='cotisations')return !!MODE[v.mode_paiement]&&typeof v.date_paiement==='string'&&isFinite(v.montant);
+  if(c==='tours')return typeof v.date_tour==='string'&&isFinite(v.montant_recu);
+  if(c==='tontines')return !!FREQ[v.frequence]&&typeof v.date_debut==='string'&&typeof v.nom==='string';
+  if(c==='membres')return (v.statut==='actif'||v.statut==='inactif')&&typeof v.nom==='string'&&typeof v.prenom==='string'&&typeof v.date_adhesion==='string';
+  if(c==='adhesions')return isFinite(v.ordre_passage);
+  if(c==='types')return isFinite(v.montant);
+  return false;
+}
+function importBackup(file){
+  if(!file)return;
+  var fr=new FileReader();
+  fr.onerror=function(){toast('Lecture du fichier impossible.');};
+  fr.onload=function(){
+    var d;try{d=JSON.parse(fr.result);}catch(e){toast('Ce fichier n\u2019est pas une sauvegarde valide.');return;}
+    if(!d||typeof d!=='object'||!(d.membres||d.tontines||d.cotisations)){toast('Ce fichier n\u2019est pas une sauvegarde de tontine.');return;}
+    var n=0,skip=0;
+    ['types','membres','tontines','adhesions','cotisations','tours','notifications'].forEach(function(c){
+      var o=d[c];if(!o||typeof o!=='object')return;
+      Object.keys(o).forEach(function(k){
+        var v=o[k];if(!v||typeof v!=='object')return;
+        v=Object.assign({},v,{id:v.id||k});
+        if(!validRec(c,v)){skip++;return;}
+        persist(c,v);n++;
+      });
+    });
+    logA('Sauvegarde importée',n+' élément(s)'+(skip?', '+skip+' ignoré(s)':''));
+    toast(n+' élément(s) importé(s)'+(skip?', '+skip+' ignoré(s)':'')+'.');
+  };
+  fr.readAsText(file);
+}
+function relanceOne(a,t){var m=mem(a.id_membre);notify(m.id,'retard','Bonjour '+m.prenom+', il vous reste '+Fp(solde(a,t))+' à cotiser pour « '+t.nom+' ». Merci de régulariser.');}
+function moveAdh(id,dir){
+  var a=S.data.adhesions[id];if(!a)return;
+  var l=adhesionsOf(a.id_tontine),i=l.findIndex(function(x){return x.id===id;}),o=l[i+dir];if(!o)return;
+  var pa=a.ordre_passage,po=o.ordre_passage;
+  persist('adhesions',Object.assign({},a,{ordre_passage:po}));persist('adhesions',Object.assign({},o,{ordre_passage:pa}));
+}
+
+/* ---------- Formulaires ---------- */
+var FORMS={
+  setup:async function(fd){
+    var tel=normPhone(fd.get('tel')),p1=String(fd.get('pin')),p2=String(fd.get('pin2'));S.authTel=tel;
+    if(tel.length<8){S.authErr='Numéro de téléphone trop court.';render();return;}
+    if(!/^\d{4,6}$/.test(p1)){S.authErr='Le PIN doit contenir 4 à 6 chiffres.';render();return;}
+    if(p1!==p2){S.authErr='Les deux PIN sont différents.';render();return;}
+    seedTypes();
+    var u={id:uid(),telephone:tel,code_pin:await hashPin(tel,p1),role:'admin',id_membre:null};
+    persist('utilisateurs',u);S.user=sessionFor(u);S.authErr='';S.authTel='';bump();logA('Compte administrateur créé',tel);render();
+  },
+  login:async function(fd){
+    var now=Date.now();
+    if(S.lock>now){S.authErr='Trop d’essais. Patientez '+Math.ceil((S.lock-now)/1000)+' secondes.';render();return;}
+    var tel=normPhone(fd.get('tel')),pin=String(fd.get('pin')),u=userOf(tel);S.authTel=tel;
+    var ok=u&&u.code_pin===await hashPin(tel,pin);
+    if(!ok){S.fail++;if(S.fail>=5){S.lock=Date.now()+30000;S.fail=0;S.authErr='Trop d’essais. Réessayez dans 30 secondes.';}else S.authErr='Téléphone ou PIN incorrect.';render();return;}
+    S.fail=0;S.authErr='';S.authTel='';S.user=sessionFor(u);S.view='accueil';bump();render();
+  },
+  membre:async function(fd,form){
+    var id=form.dataset.id,tel=String(fd.get('telephone')).trim(),old=id?mem(id):null;
+    if(vals('membres').some(function(m){return m.telephone===tel&&m.id!==id;})){showErr('Ce numéro de téléphone est déjà utilisé.');return;}
+    var photo=await resizePhoto(fd.get('photo'));
+    var m=Object.assign({},old||{id:uid(),numero:nextNumero()},{prenom:String(fd.get('prenom')).trim(),nom:String(fd.get('nom')).trim(),telephone:tel,date_adhesion:String(fd.get('date_adhesion')),statut:String(fd.get('statut'))});
+    if(photo)m.photo=photo;
+    persist('membres',m);logA(old?'Membre modifié':'Membre ajouté',mname(m));closeSheet();toast(old?'Membre enregistré.':'Membre ajouté.');
+  },
+  tontine:function(fd,form){
+    var id=form.dataset.id,old=id?S.data.tontines[id]:null,d1=String(fd.get('date_debut')),d2=String(fd.get('date_fin')||'');
+    if(d2&&d2<d1){showErr('La clôture doit être après le début.');return;}
+    var t=Object.assign({},old||{id:uid()},{nom:String(fd.get('nom')).trim(),montant:Number(fd.get('montant')),frequence:String(fd.get('frequence')),date_debut:d1,date_fin:d2});
+    seedTypes();persist('tontines',t);S.tid=t.id;logA(old?'Tontine modifiée':'Tontine créée',t.nom);closeSheet();toast(old?'Tontine enregistrée.':'Tontine créée.');
+  },
+  'adh-add':function(fd,form){
+    var tid=form.dataset.id,list=adhesionsOf(tid),ordre=list.length?list[list.length-1].ordre_passage+1:1;
+    var a={id:uid(),ordre_passage:ordre,id_membre:String(fd.get('id_membre')),id_tontine:tid,id_type:String(fd.get('id_type')),nb_tours:Number(fd.get('nb_tours'))||1};
+    persist('adhesions',a);logA('Participant ajouté',mname(mem(a.id_membre)));
+  },
+  cotis:function(fd,form){
+    var m=Number(fd.get('montant')),a=S.data.adhesions[String(fd.get('id_adhesion'))];
+    if(!a||!(m>0)){showErr('Choisissez un membre et un montant valide.');return;}
+    var d=String(fd.get('date_paiement')),eid=form&&form.dataset.id,old=eid?S.data.cotisations[eid]:null;
+    if(eid&&!old){showErr('Cette cotisation n’existe plus.');return;}
+    if(old){
+      var nc=Object.assign({},old,{date_paiement:d,montant:m,mode_paiement:String(fd.get('mode_paiement')),frais_beneficiaire:Math.max(0,Number(fd.get('frais_beneficiaire'))||0),id_adhesion:a.id});
+      persist('cotisations',nc);logA('Cotisation modifiée',mname(mem(a.id_membre))+' · '+Fp(m)+' · '+(old.recu||''));toast('Cotisation corrigée.');
+      A.receipt({dataset:{id:nc.id}});return;
+    }
+    var c={id:uid(),date_paiement:d,montant:m,mode_paiement:String(fd.get('mode_paiement')),frais_beneficiaire:Math.max(0,Number(fd.get('frais_beneficiaire'))||0),recu:'R-'+d.replace(/-/g,'')+'-'+Math.random().toString(36).slice(2,6).toUpperCase(),id_adhesion:a.id};
+    persist('cotisations',c);logA('Cotisation enregistrée',mname(mem(a.id_membre))+' · '+Fp(m));
+    A.receipt({dataset:{id:c.id}});
+  },
+  tour:function(fd,form){
+    var eid=form.dataset.id,old=eid?S.data.tours[eid]:null;
+    var t=old?S.data.tontines[old.id_tontine]:curT(),idm=String(fd.get('id_membre')),m=Number(fd.get('montant_recu'));
+    if(!t||!(m>0)){showErr('Montant invalide.');return;}
+    var ad=adhesionsOf(t.id).find(function(a){return a.id_membre===idm;});
+    var deja=ad?toursOf(t.id).filter(function(z){return z.id_membre===idm&&(!old||z.id!==old.id);}).length:0;
+    if(ad&&deja>=nbT(ad)){showErr('Ce membre a déjà reçu tous ses tours. Augmentez son nombre de tours dans la tontine.');return;}
+    if(old){
+      persist('tours',Object.assign({},old,{id_membre:idm,date_tour:String(fd.get('date_tour')),montant_recu:m,periodicite:String(fd.get('periodicite'))}));
+      logA('Tour modifié',mname(mem(old.id_membre))+(old.id_membre!==idm?' → '+mname(mem(idm)):'')+' · '+Fp(m));closeSheet();toast('Tour corrigé.');return;
+    }
+    var x={id:uid(),date_tour:String(fd.get('date_tour')),montant_recu:m,periodicite:String(fd.get('periodicite')),confirme:false,id_tontine:t.id,id_membre:idm};
+    persist('tours',x);var mm=mem(idm);
+    notify(idm,'tour','Bonjour '+mm.prenom+', c’est votre tour : vous recevez '+Fp(m)+' pour « '+t.nom+' ».');
+    logA('Tour enregistré',mname(mm)+' · '+Fp(m));closeSheet();toast('Tour enregistré.');
+  },
+  user:async function(fd){
+    var tel=normPhone(fd.get('tel')),pin=String(fd.get('pin')),idm=String(fd.get('id_membre')||'');
+    if(tel.length<8){showErr('Numéro de téléphone trop court.');return;}
+    if(!/^\d{4,6}$/.test(pin)){showErr('Le PIN doit contenir 4 à 6 chiffres.');return;}
+    if(userOf(tel)){showErr('Un compte existe déjà avec ce numéro.');return;}
+    var u={id:uid(),telephone:tel,code_pin:await hashPin(tel,pin),role:String(fd.get('role')),id_membre:idm||null};
+    persist('utilisateurs',u);logA('Compte créé',tel+' ('+u.role+')');closeSheet();toast('Compte créé.');
+  },
+  pin:async function(fd,form){
+    var u=S.data.utilisateurs[S.user.id],n1=String(fd.get('n1')),n2=String(fd.get('n2'));
+    if(!u)return;
+    if(u.code_pin!==await hashPin(u.telephone,String(fd.get('old')))){showErr('L’ancien PIN est incorrect.');return;}
+    if(!/^\d{4,6}$/.test(n1)){showErr('Le PIN doit contenir 4 à 6 chiffres.');return;}
+    if(n1!==n2){showErr('Les deux PIN sont différents.');return;}
+    persist('utilisateurs',Object.assign({},u,{code_pin:await hashPin(u.telephone,n1)}));logA('PIN modifié','');form.reset();toast('PIN modifié.');
+  }
+};
+
+/* ---------- Données de démonstration ---------- */
+function loadDemo(){
+  seedTypes();
+  var base=nextNumero(),ids=[],P=[['Kone','Awa','0700000001',30,'actif'],['Traore','Ibrahim','0700000002',30,'actif'],['Coulibaly','Fanta','0700000003',25,'actif'],['Diallo','Moussa','0700000004',20,'actif'],['Ouattara','Mariam','0700000005',15,'inactif']];
+  P.forEach(function(p,i){var id='dm'+uid()+i;ids.push(id);persist('membres',{id:id,numero:base+i,nom:p[0],prenom:p[1],telephone:p[2],date_adhesion:addDays(today(),-p[3]),statut:p[4]});});
+  var tid='dt'+uid();
+  persist('tontines',{id:tid,nom:'Tontine démo',montant:5000,frequence:'quotidienne',date_debut:addDays(today(),-10),date_fin:addDays(today(),30)});
+  S.tid=tid;
+  var aid=[];
+  ids.forEach(function(m,i){var id='da'+uid()+i;aid.push(id);persist('adhesions',{id:id,ordre_passage:i+1,id_membre:m,id_tontine:tid,id_type:'t5000',nb_tours:i===2?2:1});});
+  var C=[[2,0,5000],[2,1,5000],[1,0,5000],[1,1,5000],[1,2,20000],[1,3,5000],[0,0,5000],[0,1,5000],[0,2,20000]];
+  C.forEach(function(c,i){var d=addDays(today(),-c[0]);persist('cotisations',{id:'dc'+uid()+i,date_paiement:d,montant:c[2],mode_paiement:i%2?'mobile_money':'especes',recu:'R-'+d.replace(/-/g,'')+'-D'+(i+1),id_adhesion:aid[c[1]]});});
+  persist('tours',{id:'do'+uid(),date_tour:addDays(today(),-1),montant_recu:25000,periodicite:'journalier',confirme:true,id_tontine:tid,id_membre:ids[0]});
+  logA('Données de démonstration chargées','');
+}
+
+/* ---------- Événements ---------- */
+document.addEventListener('click',function(e){
+  bump();
+  var el=e.target.closest('[data-act]');if(!el)return;
+  var fn=A[el.dataset.act];if(fn){e.preventDefault();fn(el);}
+});
+document.addEventListener('submit',function(e){
+  var f=e.target.closest('form[data-form]');if(!f)return;
+  e.preventDefault();
+  var fn=FORMS[f.dataset.form];if(!fn)return;
+  var btn=f.querySelector('button:not([type=button])');if(btn)btn.disabled=true;
+  Promise.resolve(fn(new FormData(f),f)).catch(function(){toast('Une erreur est survenue.');}).then(function(){if(btn&&document.body.contains(btn))btn.disabled=false;});
+});
+document.addEventListener('change',function(e){
+  var el=e.target.closest('[data-change]');if(!el)return;
+  var k=el.dataset.change;
+  if(k==='tid'){S.tid=el.value;render();}
+  else if(k==='rdate'){S.rep.date=el.value||today();render();}
+  else if(k==='rmonth'){S.rep.month=el.value||today().slice(0,7);render();}
+  else if(k==='adh-type'){var a=S.data.adhesions[el.dataset.id];if(a){persist('adhesions',Object.assign({},a,{id_type:el.value}));logA('Type de cotisation modifié',mname(mem(a.id_membre)));}}
+  else if(k==='adh-tours'){var a2=S.data.adhesions[el.dataset.id];if(a2){persist('adhesions',Object.assign({},a2,{nb_tours:Number(el.value)||1}));logA('Nombre de tours modifié',mname(mem(a2.id_membre))+' : '+el.value);}}
+  else if(k==='import'){importBackup(el.files&&el.files[0]);el.value='';}
+  else if(k==='cot-pick'){var o=el.options[el.selectedIndex],inp=$('#c-m');if(o&&inp&&!(el.form&&el.form.dataset.id))inp.value=o.dataset.m||'';}
+  else if(k==='user-pick'){var o2=el.options[el.selectedIndex],ti=$('#u-t'),ro=$('#u-r');if(o2&&o2.dataset.tel&&ti){ti.value=o2.dataset.tel;if(ro)ro.value='membre';}}
+});
+document.addEventListener('input',function(e){
+  if(e.target&&e.target.dataset&&e.target.dataset.input==='q'){S.q=e.target.value;render();}
+  bump();
+});
+document.addEventListener('keydown',function(e){if(e.key==='Escape'&&S.sheet)closeSheet();bump();});
+
+init();
+})();
+</script>
+<script>
+(function(){
+  try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist();}catch(e){}
+  if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol)){
+    window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){});});
+  }
+})();
+</script>
+</body>
+</html>

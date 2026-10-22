@@ -1,0 +1,38 @@
+GESTIONNAIRE DE TONTINE - APPLICATION INSTALLABLE (PWA)
+=========================================================
+
+Fichiers (tous à la racine, sans sous-dossier) :
+  index.html, manifest.webmanifest, sw.js,
+  icon-192.png, icon-512.png, icon-maskable-512.png
+
+METHODE DEPUIS UN TELEPHONE ANDROID (GitHub Pages, gratuit)
+ 1. Dans l'application Fichiers, touchez le zip puis "Extraire".
+ 2. Dans Chrome, créez un compte gratuit sur github.com.
+ 3. Créez un dépôt : "New repository". Nom : tontine. Cochez "Public".
+    Touchez "Create repository".
+ 4. Sur la page du dépôt, touchez "uploading an existing file"
+    (ou Add file > Upload files).
+ 5. Touchez "choose your files" et sélectionnez les 6 fichiers extraits
+    (index.html, manifest.webmanifest, sw.js et les 3 icônes).
+    Attendez la fin du chargement, puis touchez "Commit changes".
+ 6. Onglet "Settings" > "Pages". Source : "Deploy from a branch".
+    Branche "main", dossier "/ (root)", touchez "Save".
+ 7. Attendez 1 à 2 minutes. L'adresse apparaît en haut de la page Pages :
+    https://VOTRE-NOM.github.io/tontine/
+ 8. Ouvrez cette adresse dans Chrome (avec Internet), attendez le chargement,
+    puis menu de Chrome (trois points) > "Installer l'application".
+
+Si la page GitHub est difficile à utiliser sur téléphone, activez
+"Version pour ordinateur" dans le menu de Chrome.
+
+A SAVOIR
+  - Les données sont enregistrées sur le téléphone où l'application est
+    installée. Elles ne sont pas partagées avec un autre téléphone.
+  - Vider les données de Chrome ou désinstaller l'application efface les
+    données. Sauvegardez régulièrement : Plus > Sécurité >
+    "Télécharger une sauvegarde". Pour restaurer : Plus > Sécurité >
+    "Restaurer depuis une sauvegarde".
+  - L'export PDF a besoin d'Internet la première fois. L'export Excel (CSV)
+    marche hors ligne.
+  - Mise à jour : remplacez les fichiers sur GitHub et changez le numéro
+    de version dans sw.js (ligne VERSION).
